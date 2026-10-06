@@ -106,6 +106,37 @@ export function nameMatchScore(fileName, requirement) {
 }
 
 /**
+ * Proposed matches for review: the best file for each unmatched requirement
+ * using the same nameMatchScore >= 0.5 rule, one file per requirement.
+ * Suggestions are never auto-applied; the user accepts or ignores each one.
+ */
+export function suggestByName({ files, requirements, matches = {} }) {
+  const usedRequirements = new Set(Object.keys(matches));
+  const usedFiles = new Set(Object.values(matches));
+  const freeFiles = (files || []).filter(
+    (file) => file.readState === 'ready' && !usedFiles.has(file.id),
+  );
+  const proposals = [];
+  const takenFiles = new Set();
+  for (const requirement of requirements || []) {
+    if (usedRequirements.has(requirement.id)) continue;
+    let best = null;
+    for (const file of freeFiles) {
+      if (takenFiles.has(file.id)) continue;
+      const score = nameMatchScore(file.name, requirement);
+      if (score >= 0.5 && (!best || score > best.score)) {
+        best = { requirementId: requirement.id, fileId: file.id, score };
+      }
+    }
+    if (best) {
+      takenFiles.add(best.fileId);
+      proposals.push(best);
+    }
+  }
+  return proposals;
+}
+
+/**
  * Returns [{ fileId, requirementId }]. Only unambiguous pairings are returned,
  * and each file / requirement appears at most once.
  */

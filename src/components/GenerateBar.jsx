@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { FileSpreadsheet } from 'lucide-react';
 
 /**
  * Summary + blocking reasons + the Generate button.
@@ -91,6 +92,7 @@ export default function GenerateBar({
               onClick={onExportCsv}
               disabled={!hasTender}
             >
+              <FileSpreadsheet size={18} aria-hidden="true" />
               {t('step4.exportCsv')}
             </button>
             <button type="button" className="btn btn--ghost" onClick={onSaveProject}>

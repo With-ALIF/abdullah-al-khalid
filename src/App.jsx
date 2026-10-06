@@ -8,6 +8,7 @@ import RequirementsList from './components/RequirementsList.jsx';
 import GenerateBar from './components/GenerateBar.jsx';
 import { buildPackage } from './lib/buildPackage.js';
 import { buildChecklistCsv, downloadBytes, downloadText } from './lib/csv.js';
+import { suggestByName } from './lib/matchSuggestions.js';
 
 const SAMPLE_REQUIREMENTS = {
   tender: {
@@ -109,6 +110,7 @@ export default function App() {
   const [progress, setProgress] = useState(null);
   const [result, setResult] = useState(null);
   const [dragging, setDragging] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
 
   // Keep the document language in sync for screen readers and font shaping.
   useEffect(() => {
@@ -231,6 +233,38 @@ export default function App() {
     await loadRequirementsText(JSON.stringify(SAMPLE_REQUIREMENTS), null);
   }, [loadRequirementsText]);
 
+  // Auto  // Auto-match only *proposes*; nothing is matched until the user accepts.
+  const handleSuggest = useCallback(() => {
+    const proposed = suggestByName({ files, requirements, matches });
+    setSuggestions(proposed);
+    if (proposed.length === 0) notify('info', 'step3.autoMatchNone');
+    else notify('info', 'step3.suggestionsFound', { count: proposed.length });
+  }, [files, requirements, matches, notify]);
+
+  const handleAcceptSuggestion = useCallback(
+    (suggestion) => {
+      setMatch(suggestion.requirementId, suggestion.fileId);
+      setSuggestions((current) =>
+        current.filter(
+          (item) =>
+            item.requirementId !== suggestion.requirementId && item.fileId !== suggestion.fileId,
+        ),
+      );
+    },
+    [setMatch],
+  );
+
+  const handleIgnoreSuggestion = useCallback((suggestion) => {
+    setSuggestions((current) =>
+      current.filter(
+        (item) =>
+          !(item.requirementId === suggestion.requirementId && item.fileId === suggestion.fileId),
+      ),
+    );
+  }, []);
+
+  const handleIgnoreAllSuggestions = useCallback(() => setSuggestions([]), []);
+
   return (
     <div
       className={`app${dragging ? ' app--dragging' : ''}`}
@@ -285,6 +319,29 @@ export default function App() {
               type="button"
               className="btn btn--ghost btn--sm"
               onClick={() => dismiss(item.id)}
+              aria-label={t('msg.dismiss')}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+        {rejected.map((item) => (
+          <div
+            key={item.id}
+            className={`notice ${item.kind === 'notpdf' ? 'notice--warn' : 'notice--bad'}`}
+            role={item.kind === 'notpdf' ? 'status' : 'alert'}
+          >
+            <span>
+              {item.kind === 'encrypted'
+                ? t('msg.pdfEncrypted', { name: item.name })
+                : item.kind === 'broken'
+                  ? t('msg.pdfBroken', { name: item.name })
+                  : t('msg.notPdfOne', { name: item.name })}
+            </span>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={() => dismissRejected(item.id)}
               aria-label={t('msg.dismiss')}
             >
               ×
@@ -347,7 +404,16 @@ export default function App() {
           onRemove={removeFile}
           onClearAll={clearFiles}
           onBrowse={handleBrowsePdfs}
-          onDropFiles={addFiles}
+          onDropFiles={(dropped) => {
+            const json = Array.from(dropped).find(
+              (file) => /\.json$/i.test(file.name) || file.type === 'application/json',
+            );
+            if (json && !tender) {
+              loadRequirementsFile(json);
+              return;
+            }
+            addFiles(dropped);
+          }}
           t={t}
         />
 
@@ -362,7 +428,11 @@ export default function App() {
           lang={lang}
           onMatch={setMatch}
           onExpiryChange={setExpiry}
-          onSuggest={applySuggestions}
+          onSuggest={handleSuggest}
+          suggestions={suggestions}
+          onAcceptSuggestion={handleAcceptSuggestion}
+          onIgnoreSuggestion={handleIgnoreSuggestion}
+          onIgnoreAllSuggestions={handleIgnoreAllSuggestions}
           t={t}
         />
 

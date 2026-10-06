@@ -155,3 +155,21 @@ Rules:
   on the document card: "File name does not look like <title>. Please check."
   Do not change the status and do not block Generate.
 Add Bangla and English translations for the warning.
+
+
+
+-----------------------------------------------------
+Prompt 4: Add CSV export, bad-PDF handling, auto-match features
+-----------------------------------------------------
+
+Add these bonus features without breaking existing behavior:
+1) CSV export of the checklist (document, file name, pages, expiry date,
+   status), UTF-8 with BOM so Bangla opens correctly in Excel. Button with
+   FileSpreadsheet icon.
+2) Safe handling of damaged or password-protected PDFs: catch errors on
+   upload, show a clear red message with the file name, never crash, and do
+   not add the file.
+3) Auto-match: a "Suggest matches" button (Sparkles icon) that proposes the
+   best file for each unmatched requirement using nameMatchScore >= 0.5, shown
+   as suggestions the user can accept or ignore (never auto-apply).
+Add Bangla and English translations for all new text.

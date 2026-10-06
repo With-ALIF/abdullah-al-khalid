@@ -117,3 +117,38 @@ export function looksLikePdfName(name, type) {
   if (type === 'application/pdf') return true;
   return /\.pdf$/i.test(name || '');
 }
+
+/**
+ * True when the first KB of bytes contains the "%PDF-" header.
+ * Extensions and MIME types lie (a PNG renamed to .pdf still says .pdf), so
+ * upload validation must check the bytes themselves. Per the PDF spec the
+ * header may sit a few bytes in, so we scan the first 1024 rather than
+ * requiring it at offset 0.
+ */
+export function hasPdfMagic(bytes) {
+  if (!bytes || bytes.length < 5) return false;
+  const head = new Uint8Array(bytes.buffer, bytes.byteOffset, Math.min(bytes.length, 1024));
+  for (let i = 0; i + 5 <= head.length; i += 1) {
+    if (
+      head[i] === 0x25 && // %
+      head[i + 1] === 0x50 && // P
+      head[i + 2] === 0x44 && // D
+      head[i + 3] === 0x46 && // F
+      head[i + 4] === 0x2d // -
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Read just the head of a File/Blob and check it is really a PDF. */
+export async function fileHasPdfMagic(file) {
+  try {
+    const head = await file.slice(0, 1024).arrayBuffer();
+    return hasPdfMagic(new Uint8Array(head));
+  } catch {
+    // If we cannot read it, let the full read classify the error instead.
+    return true;
+  }
+}

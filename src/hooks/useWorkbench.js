@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildChecklist, summarizeChecklist, blockingReasons } from '../lib/status.js';
 import { displayTitle, parseRequirements, sanitizeFileBase } from '../lib/requirements.js';
-import { inspectPdf, sha256Hex, looksLikePdfName, READ_ERROR } from '../lib/pdfRead.js';
+import { inspectPdf, sha256Hex, looksLikePdfName, fileHasPdfMagic, READ_ERROR } from '../lib/pdfRead.js';
 import { suggestMatches } from '../lib/matchSuggestions.js';
 import {
   loadSession,
@@ -184,14 +184,6 @@ export default function useWorkbench(lang, t, notify) {
         accepted.push(file);
       }
 
-      if (notPdf.length) {
-        notify('bad', 'msg.notPdf', { names: notPdf.join(', ') });
-        const stamped = Date.now();
-        setRejected((current) => [
-          ...current,
-          ...notPdf.map((name, i) => ({ id: `rejected-${stamped}-${i}`, name })),
-        ]);
-      }
       if (tooBig.length) {
         notify('warn', 'msg.tooBig', {
           max: `${LIMITS.maxSizeMb} MB`,
@@ -199,6 +191,25 @@ export default function useWorkbench(lang, t, notify) {
         });
       }
       if (overflowed > 0) notify('warn', 'msg.tooMany', { max: LIMITS.maxFiles, count: overflowed });
+
+      // The extension alone cannot be trusted: a PNG renamed to "license.pdf"
+      // must be rejected as a non-PDF now, not listed as a "broken" file later.
+      const headerResults = await Promise.all(accepted.map((file) => fileHasPdfMagic(file)));
+      const realPdfs = [];
+      for (let i = 0; i < accepted.length; i += 1) {
+        if (headerResults[i]) realPdfs.push(accepted[i]);
+        else notPdf.push(accepted[i].name);
+      }
+      if (notPdf.length) {
+        notify('warn', 'msg.notPdf', { names: notPdf.join(', ') });
+        const stamped = Date.now();
+        setRejected((current) => [
+          ...current,
+          ...notPdf.map((name, i) => ({ id: `rejected-${stamped}-${i}`, name, kind: 'notpdf' })),
+        ]);
+      }
+      accepted.length = 0;
+      accepted.push(...realPdfs);
 
       const entries = accepted.map((file) => ({
         id: nextId('file'),
@@ -235,6 +246,20 @@ export default function useWorkbench(lang, t, notify) {
             }
           } catch (error) {
             patch.detail = String(error && error.message ? error.message : error);
+          }
+          // Damaged or password-protected files are never added: they are
+          // surfaced as a clear red message naming the file instead.
+          if (patch.readState === 'error') {
+            setFiles((current) => current.filter((file) => file.id !== entry.id));
+            const kind = patch.readError === READ_ERROR.ENCRYPTED ? 'encrypted' : 'broken';
+            setRejected((current) => [
+              ...current,
+              { id: `rejected-${Date.now()}-${entry.id}`, name: entry.name, kind },
+            ]);
+            notify('bad', kind === 'encrypted' ? 'msg.pdfEncrypted' : 'msg.pdfBroken', {
+              name: entry.name,
+            });
+            return;
           }
           setFiles((current) =>
             current.map((file) => (file.id === entry.id ? { ...file, ...patch } : file)),
