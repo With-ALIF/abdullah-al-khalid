@@ -81,6 +81,7 @@ export default function UploadedFiles({
   onRemove,
   onClearAll,
   onBrowse,
+  onDropFiles,
   t,
 }) {
   const duplicateGroups = duplicates.filter((group) => group.length > 1);
@@ -106,8 +107,9 @@ export default function UploadedFiles({
         onDragEnter={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault();
+          event.stopPropagation();
           const dropped = Array.from(event.dataTransfer?.files || []);
-          if (dropped.length) onBrowse(dropped);
+          if (dropped.length) onDropFiles(dropped);
         }}
       >
         <p className="dropzone__text">

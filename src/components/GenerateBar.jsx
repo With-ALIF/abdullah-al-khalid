@@ -101,9 +101,7 @@ export default function GenerateBar({
             </button>
           </div>
 
-          {!hasMatchedFiles && summary.matched === 0 ? (
-            <p className="muted">{t('step4.noFiles')}</p>
-          ) : null}
+          {summary.matched === 0 ? <p className="muted">{t('step4.noFiles')}</p> : null}
         </>
       ) : (
         <p className="muted">{t('step4.noRequirements')}</p>

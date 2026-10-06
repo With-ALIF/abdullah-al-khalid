@@ -1,9 +1,11 @@
+import { Link2, Unlink } from 'lucide-react';
+
 /**
  * Dropdown for "which uploaded file belongs to this document".
  *
- * Files already matched to another document are disabled, so a file can never
- * end up in two documents. Duplicate files that are in use elsewhere are
- * disabled too, which enforces the duplicate rule.
+ * Only unmatched, non-duplicate files are offered (plus the currently matched
+ * one); files in use elsewhere never appear, so a file can never end up in
+ * two documents.
  */
 export default function MatchSelect({
   value,
@@ -18,33 +20,40 @@ export default function MatchSelect({
 }) {
   const hasValue = Boolean(value);
   return (
-    <div className="matchselect">
-      <label className="matchselect__label" htmlFor={`match-${label.id}`}>
+    <div>
+      <label
+        className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-slate-600"
+        htmlFor={`match-${label.id}`}
+      >
+        <Link2 size={18} aria-hidden="true" className="shrink-0 text-indigo-600" />
         {label.text}
       </label>
-      <select
-        id={`match-${label.id}`}
-        className="select"
-        value={hasValue ? value : ''}
-        onChange={(event) => onChange(event.target.value || null)}
-      >
-        <option value="">{hasValue ? noneLabel : placeholder}</option>
-        {options.length === 0 ? <option disabled>{emptyLabel}</option> : null}
-        {options.map((option) => (
-          <option
-            key={option.value}
-            value={option.value}
-            disabled={option.disabled}
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          id={`match-${label.id}`}
+          className="min-h-[44px] w-full min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-900"
+          value={hasValue ? value : ''}
+          onChange={(event) => onChange(event.target.value || null)}
+        >
+          <option value="">{hasValue ? noneLabel : placeholder}</option>
+          {options.length === 0 ? <option disabled>{emptyLabel}</option> : null}
+          {options.map((option) => (
+            <option key={option.value} value={option.value} disabled={option.disabled}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        {hasValue ? (
+          <button
+            type="button"
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+            onClick={onUnmatch}
           >
-            {option.label}
-          </option>
-        ))}
-      </select>
-      {hasValue ? (
-        <button type="button" className="btn btn--ghost btn--sm" onClick={onUnmatch}>
-          {unmatchLabel}
-        </button>
-      ) : null}
+            <Unlink size={18} aria-hidden="true" />
+            {unmatchLabel}
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

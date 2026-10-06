@@ -91,3 +91,67 @@ QUALITY
 
 
 
+-----------------------------------------------------
+Prompt 2: UI REQUIREMENTS (add to the existing app)
+-----------------------------------------------------
+
+Goal: clean, modern, professional UI that a non-technical office worker can
+use in Bangla or English without help. Clarity over decoration.
+
+ICONS: use `lucide-react` (import only what you use, 18-20px). Always pair
+icons with text labels; icon-only buttons need aria-label + title.
+- Logo: PackageCheck | Language: Languages | Load JSON: FileJson
+- Upload: UploadCloud | PDF file: FileText | Pages: Files | Remove: Trash2
+- Match: Link2 | Unmatch: Unlink | Expiry: CalendarClock | Preview: Eye
+- Duplicate: Copy | Non-PDF error: FileX | Error: AlertCircle
+- Generate: FilePlus2 | Download: Download | Loading: Loader2 (animate-spin)
+- Success: CheckCheck | Mandatory: Asterisk | Optional: CircleDashed
+
+STATUS BADGES (rounded pill = icon + text + color, never color alone)
+- OK: CheckCircle2, green | Missing: XCircle, red
+- Expiry date needed: CalendarClock, amber | Expired: CalendarX, red
+- Not provided: MinusCircle, gray | Duplicate: Copy, orange
+
+LAYOUT
+- Sticky top bar: logo + app name left, "বাংলা | English" toggle right.
+- 3-step strip: Load tender -> Upload & match -> Check & download.
+- Desktop two columns: left = required document cards (sorted by order),
+  right = drop zone + uploaded files. Mobile: single column.
+- Sticky bottom bar: "X of Y ready", blocking reasons, big Generate button
+  (clearly disabled with reason text beside it).
+- Document card: order number, title (bn/en), mandatory chip, status badge,
+  file select (only unmatched, non-duplicate files), Unmatch button, expiry
+  date input when needed. Left accent bar colored by status.
+- File row: name, page count, matched-to tag, Duplicate badge, Eye preview,
+  Trash2 remove (confirm if matched). Non-PDF files shown in a dismissible
+  red alert.
+- Empty states with big icon + one-line instruction.
+- Success banner with Download button after generation.
+
+STYLE: Tailwind CSS, slate-50 background, white rounded-2xl cards, soft
+shadows, one brand color (indigo). Fonts: Noto Sans Bengali + Inter.
+Buttons min 44px height, visible focus ring, WCAG AA contrast,
+aria-live for status changes, <html lang> switches bn/en.
+Transitions 150-200ms only.
+
+
+-----------------------------------------------------
+Prompt 3: File name Matching logic
+-----------------------------------------------------
+
+
+Add file-name matching logic. Create a pure function
+nameMatchScore(fileName, requirement) that normalizes names before comparing:
+- lowercase, strip ".pdf"
+- remove leading order numbers/IDs like "02_", "2-", "R02_"
+- replace _ - . with spaces, collapse extra spaces
+- drop stop words (of, the, and, for)
+Then return the share of requirement title_en words found in the file name
+(0 to 1). So "02_technical_proposal.pdf" must match "Technical Proposal".
+
+Rules:
+- Score >= 0.5: match accepted normally.
+- Score < 0.5: still allow the match, but show an amber AlertTriangle warning
+  on the document card: "File name does not look like <title>. Please check."
+  Do not change the status and do not block Generate.
+Add Bangla and English translations for the warning.

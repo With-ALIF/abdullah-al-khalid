@@ -10,6 +10,11 @@ const en = {
   'app.privacy': 'Files never leave your device. Nothing is uploaded to any server.',
   'app.language': 'Language',
   'app.languageHint': 'Choose the language of this screen',
+  'app.steps.load': 'Load tender',
+  'app.steps.upload': 'Upload & match',
+  'app.steps.build': 'Check & download',
+  'app.skip': 'Skip to content',
+  'app.confirmRemoveMatched': 'This file is matched to a document. Remove it and clear the match?',
 
   'step1.title': 'Step 1: Load requirements',
   'step1.help': 'Choose the requirements.json file you received with the tender.',
@@ -66,6 +71,7 @@ const en = {
   'step3.autoMatch': 'Suggest matches',
   'step3.autoMatchNone': 'No confident suggestions were found.',
   'step3.autoMatchApplied': '{count} file(s) matched automatically. Please check them.',
+  'step3.nameMismatchWarning': 'File name does not look like {title}. Please check.',
   'step3.matchSummary': '{matched} of {total} documents matched',
   'step3.optionalSkipped': '{count} optional document(s) will be left out.',
 
@@ -153,6 +159,11 @@ const bn = {
   'app.privacy': 'কোনো ফাইলই আপনার কম্পিউটারের বাইরে যায় না। কোথাও আপলোড হয় না।',
   'app.language': 'ভাষা',
   'app.languageHint': 'এই পর্দার ভাষা বেছে নিন',
+  'app.steps.load': 'টেন্ডার লোড',
+  'app.steps.upload': 'আপলোড ও মিলান',
+  'app.steps.build': 'যাচাই ও ডাউনলোড',
+  'app.skip': 'মূল অংশে যান',
+  'app.confirmRemoveMatched': 'এই ফাইলটি একটি ডকুমেন্টের সাথে মেলানো আছে। সরিয়ে মিল বাতিল করবেন?',
 
   'step1.title': 'ধাপ ১: প্রয়োজনের তালিকা লোড করুন',
   'step1.help': 'টেন্ডারের সাথে পাওয়া requirements.json ফাইলটি বেছে নিন।',
@@ -209,6 +220,7 @@ const bn = {
   'step3.autoMatch': 'মিলের প্রস্তাব দিন',
   'step3.autoMatchNone': 'নিশ্চিত কোনো প্রস্তাব পাওয়া যায়নি।',
   'step3.autoMatchApplied': '{count}টি ফাইল স্বয়ংক্রিয়ভাবে মেলানো হয়েছে। একবার দেখে নিন।',
+  'step3.nameMismatchWarning': 'ফাইলের নামটি "{title}"-এর মতো মনে হচ্ছে না। অনুগ্রহ করে পরীক্ষা করুন।',
   'step3.matchSummary': '{total}টির মধ্যে {matched}টি ডকুমেন্টে ফাইল মেলানো হয়েছে',
   'step3.optionalSkipped': '{count}টি ঐচ্ছিক ডকুমেন্ট বাদ পড়বে।',
 

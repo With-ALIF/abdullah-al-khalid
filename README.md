@@ -33,6 +33,18 @@ npm run build    # -> dist/
 npm run preview  # serve dist/ locally
 ```
 
+Tests (pure logic plus the generated PDF, run in Node, no browser needed):
+
+```bash
+npm test
+```
+
+`test/status.test.mjs` covers the status rules, date-only comparisons,
+`requirements.json` validation, suggestions, CSV and the dictionary.
+`test/package.test.mjs` builds real packages and checks page counts, footers on
+every page, the index start-page numbers, the cover contents, and that each
+source page keeps its size and orientation while gaining 36 pt at the bottom.
+
 ## How to use it
 
 1. **Load requirements** — pick `requirements.json`. The tender header and the
@@ -137,6 +149,9 @@ src/
   components/
     TenderHeader.jsx  RequirementsList.jsx  UploadedFiles.jsx
     MatchSelect.jsx   StatusBadge.jsx       GenerateBar.jsx
+test/
+  status.test.mjs        status rules, dates, validation, CSV, i18n
+  package.test.mjs       the generated PDF: pages, footers, index, rotation
 ```
 
 Statuses are never stored in state. `useWorkbench` holds the requirements, the

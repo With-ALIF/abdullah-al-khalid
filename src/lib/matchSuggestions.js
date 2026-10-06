@@ -66,6 +66,46 @@ function scoreFile(tokens, fileTokens, requirementTokenSet) {
 }
 
 /**
+ * Name-quality check: how much of the requirement's English title is echoed
+ * by the file name. Pure: no state, no side effects.
+ *
+ * Normalisation applied to both sides:
+ *  - lowercase, strip ".pdf"
+ *  - remove a leading order number/ID like "02_", "2-", "R02_"
+ *  - replace _ - . with spaces, collapse extra spaces
+ *  - drop stop words (of, the, and, for)
+ *
+ * Returns the share of requirement title_en words present in the file name,
+ * from 0 to 1.
+ */
+const NAME_STOP_WORDS = new Set(['of', 'the', 'and', 'for']);
+
+function normalizeForMatch(value) {
+  const cleaned = String(value || '')
+    .toLowerCase()
+    .replace(/\.pdf$/i, '')
+    .replace(/^[a-z]{0,4}-?\d+[_\-. ]+/i, '')
+    .replace(/[_\-.]+/g, ' ')
+    .replace(/[^a-z0-9\u0980-\u09FF\s]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned
+    .split(' ')
+    .filter((word) => word && !NAME_STOP_WORDS.has(word));
+}
+
+export function nameMatchScore(fileName, requirement) {
+  const title = typeof requirement === 'string'
+    ? requirement
+    : (requirement && (requirement.title_en || requirement.title || requirement.displayTitle || ''));
+  const titleWords = normalizeForMatch(title);
+  if (titleWords.length === 0) return 1;
+  const fileWords = new Set(normalizeForMatch(fileName));
+  const found = titleWords.filter((word) => fileWords.has(word)).length;
+  return found / titleWords.length;
+}
+
+/**
  * Returns [{ fileId, requirementId }]. Only unambiguous pairings are returned,
  * and each file / requirement appears at most once.
  */

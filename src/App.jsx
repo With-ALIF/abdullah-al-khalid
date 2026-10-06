@@ -89,6 +89,8 @@ export default function App() {
     setIncludeIndex,
     limits,
     restorable,
+    rejected,
+    dismissRejected,
     loadRequirementsText,
     loadRequirementsFile,
     addFiles,
@@ -345,6 +347,7 @@ export default function App() {
           onRemove={removeFile}
           onClearAll={clearFiles}
           onBrowse={handleBrowsePdfs}
+          onDropFiles={addFiles}
           t={t}
         />
 

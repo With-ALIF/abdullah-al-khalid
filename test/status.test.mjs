@@ -1,9 +1,9 @@
-import { computeStatus, buildChecklist, summarizeChecklist, STATUS } from './src/lib/status.js';
-import { isBefore, compareISODate, parseISODate, todayISO } from './src/lib/dates.js';
-import { parseRequirements, displayTitle } from './src/lib/requirements.js';
-import { suggestMatches } from './src/lib/matchSuggestions.js';
-import { buildChecklistCsv } from './src/lib/csv.js';
-import { translate, makeT } from './src/i18n.js';
+import { computeStatus, buildChecklist, summarizeChecklist, STATUS } from '../src/lib/status.js';
+import { isBefore, compareISODate, parseISODate, todayISO } from '../src/lib/dates.js';
+import { parseRequirements, displayTitle } from '../src/lib/requirements.js';
+import { suggestMatches, nameMatchScore } from '../src/lib/matchSuggestions.js';
+import { buildChecklistCsv } from '../src/lib/csv.js';
+import { translate, makeT } from '../src/i18n.js';
 
 let failed = 0;
 const eq = (label, actual, expected) => {
@@ -100,6 +100,14 @@ eq(
   suggestions.map((s) => `${s.fileId}->${s.requirementId}`).sort(),
   ['f1->TL', 'f2->BS'],
 );
+
+// nameMatchScore
+eq('nameMatchScore exact with prefix 02_', nameMatchScore('02_technical_proposal.pdf', { title_en: 'Technical Proposal' }), 1);
+eq('nameMatchScore with 2-', nameMatchScore('2-technical_proposal.pdf', { title_en: 'Technical Proposal' }), 1);
+eq('nameMatchScore with R02_', nameMatchScore('R02_technical_proposal.pdf', { title_en: 'Technical Proposal' }), 1);
+eq('nameMatchScore drop stop words', nameMatchScore('income_tax_return.pdf', { title_en: 'Income Tax Return of the last year' }), 0.6);
+eq('nameMatchScore half match', nameMatchScore('technical_notes.pdf', { title_en: 'Technical Proposal' }), 0.5);
+eq('nameMatchScore mismatch', nameMatchScore('other_file.pdf', { title_en: 'Technical Proposal' }), 0);
 
 // csv
 const csv = buildChecklistCsv({ checklist, tender: { tender_id: 'T-1' }, t, lang: 'en' });

@@ -51,6 +51,8 @@ export default function useWorkbench(lang, t, notify) {
   const [expiryDates, setExpiryDates] = useState({});
   const [includeIndex, setIncludeIndex] = useState(true);
   const [restorable, setRestorable] = useState(null);
+  // Non-PDF picks stay visible as a dismissible red alert (not just a toast).
+  const [rejected, setRejected] = useState([]);
 
   const requirementsById = useMemo(() => {
     const map = {};
@@ -182,7 +184,14 @@ export default function useWorkbench(lang, t, notify) {
         accepted.push(file);
       }
 
-      if (notPdf.length) notify('bad', 'msg.notPdf', { names: notPdf.join(', ') });
+      if (notPdf.length) {
+        notify('bad', 'msg.notPdf', { names: notPdf.join(', ') });
+        const stamped = Date.now();
+        setRejected((current) => [
+          ...current,
+          ...notPdf.map((name, i) => ({ id: `rejected-${stamped}-${i}`, name })),
+        ]);
+      }
       if (tooBig.length) {
         notify('warn', 'msg.tooBig', {
           max: `${LIMITS.maxSizeMb} MB`,
@@ -429,6 +438,7 @@ export default function useWorkbench(lang, t, notify) {
     setExpiryDates({});
     setLoadedAt(null);
     setRestorable(null);
+    setRejected([]);
     pendingByHashRef.current = null;
     clearSession();
   }, []);
@@ -478,6 +488,10 @@ export default function useWorkbench(lang, t, notify) {
 
   const downloadBaseName = sanitizeFileBase(tender ? tender.tender_id : 'tender');
 
+  const dismissRejected = useCallback((id) => {
+    setRejected((current) => (id ? current.filter((item) => item.id !== id) : []));
+  }, []);
+
   return {
     tender,
     requirements: orderedRequirements,
@@ -501,6 +515,8 @@ export default function useWorkbench(lang, t, notify) {
     setIncludeIndex,
     limits: LIMITS,
     restorable,
+    rejected,
+    dismissRejected,
     loadRequirementsText,
     loadRequirementsFile,
     addFiles,

@@ -1,6 +1,8 @@
 import MatchSelect from './MatchSelect.jsx';
 import StatusBadge from './StatusBadge.jsx';
+import { AlertTriangle } from 'lucide-react';
 import { formatISODateForDisplay, isValidISODate } from '../lib/dates.js';
+import { nameMatchScore } from '../lib/matchSuggestions.js';
 
 /**
  * One row per required document: match dropdown, expiry date, status.
@@ -30,11 +32,13 @@ export default function RequirementsList({
     );
   }
 
-  const duplicateIdsInUse = new Set();
+  // Files that share content with a file already sitting in another document.
+  // Offering them here is pointless: `canMatch` would refuse the assignment.
+  const blockedByDuplicate = new Set();
   for (const group of duplicates) {
-    if (group.length > 1 && group.some((id) => Object.values(matches).includes(id))) {
-      for (const id of group) duplicateIdsInUse.add(id);
-    }
+    if (group.length < 2) continue;
+    const inUse = group.some((id) => Object.values(matches).includes(id));
+    if (inUse) for (const id of group) blockedByDuplicate.add(id);
   }
 
   return (
@@ -55,22 +59,20 @@ export default function RequirementsList({
             const usedBy = Object.keys(matches).find(
               (id) => matches[id] === file.id && id !== requirement.id,
             );
-            const isDuplicateOfUsedFile =
-              duplicateIdsInUse.has(file.id) &&
-              (duplicateIdsInUse.size > 0) &&
-              !currentFileId;
-            const disabled = Boolean(usedBy) || (isDuplicateOfUsedFile && !usedBy);
+            const duplicateBlocked = blockedByDuplicate.has(file.id) && !currentFileId;
             let label = `${file.name} — ${t('step2.pages', { count: file.pageCount })}`;
             if (usedBy) {
               label += ` (${t('step3.takenByOther', { title: requirementsById[usedBy]?.displayTitle || '' })})`;
-            } else if (isDuplicateOfUsedFile && !currentFileId) {
+            } else if (duplicateBlocked) {
               label += ` (${t('step3.duplicateBlocked')})`;
             }
-            return { value: file.id, label, disabled };
+            return { value: file.id, label, disabled: Boolean(usedBy) || duplicateBlocked };
           });
 
           const showExpiry = Boolean(row.file) && requirement.has_expiry;
-          const expiryInvalid = showExpiry && row.expiryDate && !isValidISODate(row.expiryDate);
+          // A date input can only yield '' or a valid YYYY-MM-DD, but a restored
+          // project file could carry anything, so validate before trusting it.
+          const expiryDate = isValidISODate(row.expiryDate) ? row.expiryDate : '';
 
           return (
             <li
@@ -124,22 +126,29 @@ export default function RequirementsList({
                     </label>
                     <input
                       id={`expiry-${requirement.id}`}
-                      className={`input input--date${expiryInvalid ? ' input--invalid' : ''}`}
+                      className="input input--date"
                       type="date"
-                      value={isValidISODate(row.expiryDate) ? row.expiryDate : ''}
+                      value={expiryDate}
                       onChange={(event) => onExpiryChange(requirement.id, event.target.value)}
                       aria-describedby={`expiry-hint-${requirement.id}`}
                     />
                     <p id={`expiry-hint-${requirement.id}`} className="expiry__hint">
                       {t('step3.expiryHint')}
                       {deadline ? ` · ${t('tender.deadline')}: ${formatISODateForDisplay(deadline, lang)}` : ''}
-                      {row.expiryDate && !expiryInvalid ? ` · ${formatISODateForDisplay(row.expiryDate, lang)}` : ''}
+                      {expiryDate ? ` · ${formatISODateForDisplay(expiryDate, lang)}` : ''}
                     </p>
                   </div>
                 ) : null}
               </div>
 
-              </li>
+              {row.file && nameMatchScore(row.file.name, requirement) < 0.5 ? (
+                <p className="mt-2 flex items-start gap-1.5 text-sm font-medium text-amber-700" role="status">
+                  <AlertTriangle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+                  <span>{t('step3.nameMismatchWarning', { title: requirement.displayTitle })}</span>
+                </p>
+              ) : null}
+
+            </li>
           );
         })}
       </ul>
