@@ -1,0 +1,93 @@
+=====================================================
+AI DevFest - Tender Document Package Builder
+AI Prompt Log
+=====================================================
+Name        : Abdullah Al Khalid 
+Tools used  : Claude Code AI, Antigravity, OpenCode
+Stack       : React (JavaScript + JSX), Vite, Tailwind CSS, pdf-lib, pdfjs-dist, lucide-react
+Note        : Prompts are listed in the order they were used.
+              Each git commit message references its prompt number.
+=====================================================
+
+-----------------------------------------------------
+Prompt 1: Main app (core features + package rules)
+-----------------------------------------------------
+
+Build a frontend-only web app called "Tender Document Package Builder" using
+React (JavaScript + JSX, NO TypeScript) with Vite. Use pdf-lib to merge PDFs
+and draw footers, and pdfjs-dist to count pages and show previews. All
+processing must happen in the browser: no backend, no uploads anywhere.
+It must run in the latest Google Chrome and be deployable as a static site
+over public HTTPS (Vercel / Netlify / GitHub Pages). Keep the UI simple
+enough for a non-technical office worker.
+
+INPUT
+- requirements.json: { tender: { tender_id, title, procuring_entity, bidder,
+  submission_deadline (YYYY-MM-DD) }, requirements: [ { id, order, title_en,
+  title_bn, mandatory, has_expiry } ] }
+- PDF files only, up to 30 files and 50 MB total.
+
+MAIN FEATURES
+1. Load requirements.json via file picker. Show tender details and the list of
+   required documents sorted by `order`.
+2. Upload many PDFs at once (multi-select + drag and drop). Show each file's
+   name and page count. Reject non-PDF files with a clear message. Allow
+   removing any uploaded file (this also clears its match).
+3. Matching: the user matches each uploaded file to exactly one required
+   document. One document gets at most one file; one file goes to at most one
+   document. The user can change or undo a match at any time.
+4. Expiry dates: if a requirement has has_expiry = true and a file is matched,
+   show a date input for the expiry date.
+5. Status for every requirement, recomputed instantly on every change.
+   Exactly one status per document:
+   - Missing: mandatory, no file matched (BLOCKS)
+   - Expiry date needed: has_expiry, file matched, no date entered (BLOCKS)
+   - Expired: expiry date is strictly BEFORE submission_deadline (BLOCKS)
+   - Not provided: optional, no file matched (does not block)
+   - OK: file matched and (if has_expiry) expiry date >= submission_deadline
+     (does not block). Expiring on the deadline day is still OK.
+   Compare dates as YYYY-MM-DD strings or by date-only parsing, so timezones
+   never cause off-by-one errors.
+6. Duplicate detection: compute a SHA-256 hash of each file's bytes. Files with
+   identical content (even with different names) are marked "Duplicate" in the
+   uploaded files list. Do not allow duplicates to be matched to different
+   documents.
+7. Generate button: disabled while any requirement has a blocking status. Show
+   the list of reasons why (e.g. "Trade License: Missing"). When nothing
+   blocks, enable it.
+8. Download the result as <tender_id>_Package.pdf.
+9. Language switch (Bangla / English) for the WHOLE UI. Requirement names come
+   from title_bn or title_en according to the chosen language. Use a Bangla web
+   font (e.g. Noto Sans Bengali) for the UI.
+
+PACKAGE PDF RULES (follow exactly)
+- Page 1: English cover page showing tender ID, tender title, procuring entity,
+  bidder name, submission deadline, the date the package was generated, and
+  the ordered list of included documents (use English titles).
+- After the cover: documents sorted by `order`, all pages of each file in their
+  original order. Skip optional documents that have no file.
+- EVERY page including the cover has a footer at the bottom:
+  "<tender_id> | Page X of Y" where Y is the total page count of the final PDF.
+- The footer must be clearly readable and must NOT cover document content.
+  Do this by embedding each source page onto a new, slightly taller page
+  (e.g. add ~36pt extra at the bottom) and drawing the footer in that added
+  margin. Respect each source page's own size and rotation.
+
+BONUS (only after the main features work)
+- Index page after the cover with the starting page number of each document
+- CSV export of the checklist (document, file name, pages, expiry, status)
+- Save/restore work via localStorage or exporting a project JSON
+- Auto-match suggestions based on file names
+- Handle damaged or password-protected PDFs with a clear message, no crash
+
+QUALITY
+- Clean component structure (App, TenderHeader, RequirementsList,
+  UploadedFiles, MatchSelect, StatusBadge, GenerateBar, i18n dictionary).
+- Use plain state (useState/useReducer/useMemo); derive statuses with a pure
+  function so they always update instantly.
+- Accessible, large click targets, color + text for statuses (not color alone).
+- Include a README with run/build/deploy instructions.
+- Make small, meaningful commits (at least every 30 minutes).
+
+
+

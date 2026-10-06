@@ -1,0 +1,51 @@
+{
+  "tender": {
+    "tender_id": "DEMO-2026-014",
+    "title": "Supply of Office Furniture and Equipment",
+    "procuring_entity": "Dhaka North City Corporation",
+    "bidder": "Example Trading Company",
+    "submission_deadline": "2026-11-30"
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "order": 1,
+      "title_en": "Trade License",
+      "title_bn": "ট্রেড লাইসেন্স",
+      "mandatory": true,
+      "has_expiry": true
+    },
+    {
+      "id": "R2",
+      "order": 2,
+      "title_en": "VAT Registration Certificate ( BIN )",
+      "title_bn": "ভ্যাট নিবন্ধন সার্টিফিকেট ( বিআইএন )",
+      "mandatory": true,
+      "has_expiry": false
+    },
+    {
+      "id": "R3",
+      "order": 3,
+      "title_en": "Bank Solvency Certificate",
+      "title_bn": "ব্যাংক সলভেন্সি সার্টিফিকেট",
+      "mandatory": true,
+      "has_expiry": true
+    },
+    {
+      "id": "R4",
+      "order": 4,
+      "title_en": "Income Tax Return of the last year",
+      "title_bn": "গত বছরের আয়কর রিটার্ন",
+      "mandatory": false,
+      "has_expiry": false
+    },
+    {
+      "id": "R5",
+      "order": 5,
+      "title_en": "Tender Security or Bank Guarantee",
+      "title_bn": "টেন্ডার জামানত অথবা ব্যাংক গ্যারান্টি",
+      "mandatory": false,
+      "has_expiry": true
+    }
+  ]
+}

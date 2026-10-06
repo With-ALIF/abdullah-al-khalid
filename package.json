@@ -1,0 +1,23 @@
+{
+  "name": "tender-document-package-builder",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Frontend-only tender document package builder. Merges matched PDFs into one footered package entirely in the browser.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource/noto-sans-bengali": "^5.2.5",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.10.38",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.7"
+  }
+}
