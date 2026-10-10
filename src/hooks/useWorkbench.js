@@ -4,6 +4,15 @@ import { displayTitle, parseRequirements, sanitizeFileBase } from '../lib/requir
 import { inspectPdf, sha256Hex, looksLikePdfName, fileHasPdfMagic, READ_ERROR } from '../lib/pdfRead.js';
 import { suggestMatches } from '../lib/matchSuggestions.js';
 import {
+  SEAL_DEFAULT_SCOPE,
+  SEAL_DEFAULT_WIDTH_MM,
+  SEAL_MAX_BYTES,
+  SEAL_MAX_MB,
+  classifySealBytes,
+  normalizeSealScope,
+  normalizeSealWidth,
+} from '../lib/sealImage.js';
+import {
   loadSession,
   saveSession,
   clearSession,
@@ -50,6 +59,9 @@ export default function useWorkbench(lang, t, notify) {
   const [matches, setMatches] = useState({});
   const [expiryDates, setExpiryDates] = useState({});
   const [includeIndex, setIncludeIndex] = useState(true);
+  // Optional company seal: { data, format, name, scope, widthMm }.
+  // The bytes stay in memory for this session only, never in storage.
+  const [seal, setSeal] = useState(null);
   const [restorable, setRestorable] = useState(null);
   // Non-PDF picks stay visible as a dismissible red alert (not just a toast).
   const [rejected, setRejected] = useState([]);
@@ -389,6 +401,50 @@ export default function useWorkbench(lang, t, notify) {
     return suggestions.length;
   }, [files, orderedRequirements, notify]);
 
+  /* ---------------------------------------------------------------- seal */
+
+  const loadSeal = useCallback(
+    async (file) => {
+      if (!file) return false;
+      if (file.size > SEAL_MAX_BYTES) {
+        notify('bad', 'seal.tooBig', { name: file.name, max: `${SEAL_MAX_MB} MB` });
+        return false;
+      }
+      let bytes;
+      try {
+        bytes = new Uint8Array(await file.arrayBuffer());
+      } catch {
+        notify('bad', 'seal.readError', { name: file.name });
+        return false;
+      }
+      const format = classifySealBytes(bytes);
+      if (!format) {
+        notify('bad', 'seal.unsupported', { name: file.name });
+        return false;
+      }
+      setSeal({
+        data: bytes,
+        format,
+        name: file.name,
+        scope: SEAL_DEFAULT_SCOPE,
+        widthMm: SEAL_DEFAULT_WIDTH_MM,
+      });
+      notify('info', 'seal.added', { name: file.name });
+      return true;
+    },
+    [notify],
+  );
+
+  const clearSeal = useCallback(() => setSeal(null), []);
+
+  const setSealScope = useCallback((scope) => {
+    setSeal((current) => (current ? { ...current, scope: normalizeSealScope(scope) } : current));
+  }, []);
+
+  const setSealWidth = useCallback((widthMm) => {
+    setSeal((current) => (current ? { ...current, widthMm: normalizeSealWidth(widthMm) } : current));
+  }, []);
+
   /* -------------------------------------------------------------- session */
 
   useEffect(() => {
@@ -464,6 +520,7 @@ export default function useWorkbench(lang, t, notify) {
     setLoadedAt(null);
     setRestorable(null);
     setRejected([]);
+    setSeal(null);
     pendingByHashRef.current = null;
     clearSession();
   }, []);
@@ -538,6 +595,11 @@ export default function useWorkbench(lang, t, notify) {
     ready,
     includeIndex,
     setIncludeIndex,
+    seal,
+    loadSeal,
+    clearSeal,
+    setSealScope,
+    setSealWidth,
     limits: LIMITS,
     restorable,
     rejected,

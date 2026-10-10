@@ -2,9 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LANGUAGES, makeT } from './i18n.js';
 import useWorkbench from './hooks/useWorkbench.js';
 import useNotifications from './hooks/useNotifications.js';
+import useTheme from './hooks/useTheme.js';
 import TenderHeader from './components/TenderHeader.jsx';
+import ThemeSwitch from './components/ThemeSwitch.jsx';
 import UploadedFiles from './components/UploadedFiles.jsx';
 import RequirementsList from './components/RequirementsList.jsx';
+import SealPanel from './components/SealPanel.jsx';
 import GenerateBar from './components/GenerateBar.jsx';
 import { buildPackage } from './lib/buildPackage.js';
 import { buildChecklistCsv, downloadBytes, downloadText } from './lib/csv.js';
@@ -69,6 +72,7 @@ export default function App() {
   });
   const t = useMemo(() => makeT(lang), [lang]);
   const { notifications, notify, dismiss } = useNotifications(t);
+  const { theme, setTheme } = useTheme();
   const workbench = useWorkbench(lang, t, notify);
   const {
     tender,
@@ -88,6 +92,11 @@ export default function App() {
     ready,
     includeIndex,
     setIncludeIndex,
+    seal,
+    loadSeal,
+    clearSeal,
+    setSealScope,
+    setSealWidth,
     limits,
     restorable,
     rejected,
@@ -127,6 +136,25 @@ export default function App() {
       if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
     };
   }, []);
+
+  // Anything that changes what goes into the package (documents, matches,
+  // expiry dates, index, seal) makes the previous download stale, so the
+  // "package ready" banner disappears until the next build. Language is left
+  // out on purpose: switching it changes no document.
+  const buildSignature = JSON.stringify([
+    includeIndex,
+    seal ? [seal.name, seal.scope, seal.widthMm] : null,
+    checklist.map((row) => [row.requirement.id, row.status, row.fileId || '', row.expiryDate || '']),
+    tender ? tender.tender_id : null,
+  ]);
+
+  useEffect(() => {
+    if (resultUrlRef.current) {
+      URL.revokeObjectURL(resultUrlRef.current);
+      resultUrlRef.current = null;
+    }
+    setResult(null);
+  }, [buildSignature]);
 
   const downloadName = `${downloadBaseName}_Package.pdf`;
 
@@ -198,20 +226,27 @@ export default function App() {
         rows: checklist,
         files: usableFiles,
         includeIndex,
+        seal,
         onProgress: setProgress,
       });
       const blob = new Blob([built.bytes], { type: 'application/pdf' });
       if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
       const url = URL.createObjectURL(blob);
       resultUrlRef.current = url;
-      setResult({ url, name: downloadName, pageCount: built.pageCount, entries: built.entries });
+      setResult({
+        url,
+        name: downloadName,
+        pageCount: built.pageCount,
+        entries: built.entries,
+        seal: built.seal,
+      });
       downloadBytes(built.bytes, downloadName, 'application/pdf');
       setProgress(null);
     } catch (error) {
       setProgress(null);
       notify('bad', 'msg.buildFailed', { detail: error.message });
     }
-  }, [tender, checklist, files, includeIndex, downloadName, notify]);
+  }, [tender, checklist, files, includeIndex, seal, downloadName, notify]);
 
   const handleExportCsv = useCallback(() => {
     const csv = buildChecklistCsv({ checklist, tender, t, lang });
@@ -287,23 +322,26 @@ export default function App() {
           <h1>{t('app.title')}</h1>
           <p className="muted">{t('app.tagline')}</p>
         </div>
-        <div
-          className="langswitch"
-          role="group"
-          aria-label={t('app.languageHint')}
-          title={t('app.languageHint')}
-        >
-          {LANGUAGES.map((option) => (
-            <button
-              key={option.code}
-              type="button"
-              className={`langswitch__btn${lang === option.code ? ' langswitch__btn--on' : ''}`}
-              aria-pressed={lang === option.code}
-              onClick={() => setLang(option.code)}
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className="appbar__tools">
+          <ThemeSwitch theme={theme} onThemeChange={setTheme} t={t} />
+          <div
+            className="langswitch"
+            role="group"
+            aria-label={t('app.languageHint')}
+            title={t('app.languageHint')}
+          >
+            {LANGUAGES.map((option) => (
+              <button
+                key={option.code}
+                type="button"
+                className={`langswitch__btn${lang === option.code ? ' langswitch__btn--on' : ''}`}
+                aria-pressed={lang === option.code}
+                onClick={() => setLang(option.code)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
@@ -435,6 +473,17 @@ export default function App() {
           onIgnoreAllSuggestions={handleIgnoreAllSuggestions}
           t={t}
         />
+
+        {hasTender ? (
+          <SealPanel
+            seal={seal}
+            onSelect={loadSeal}
+            onRemove={clearSeal}
+            onScopeChange={setSealScope}
+            onWidthChange={setSealWidth}
+            t={t}
+          />
+        ) : null}
 
         <GenerateBar
           summary={summary}

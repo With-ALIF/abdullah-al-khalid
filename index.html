@@ -8,6 +8,22 @@
       content="Build a single tender submission PDF package in your browser. Files never leave your computer."
     />
     <title>Tender Document Package Builder</title>
+    <script>
+      // Paint the chosen theme before the first frame so a dark-mode user
+      // never sees a white flash. Mirrors src/lib/theme.js resolveTheme().
+      (function () {
+        var theme = 'light';
+        try {
+          var mode = localStorage.getItem('tdpb.theme.v1') || 'system';
+          var systemDark =
+            window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          theme = mode === 'dark' || (mode !== 'light' && systemDark) ? 'dark' : 'light';
+        } catch (error) {
+          theme = 'light';
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

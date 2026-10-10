@@ -11,27 +11,33 @@ import { STATUS } from '../lib/status.js';
 const CONFIG = {
   [STATUS.OK]: {
     Icon: CheckCircle2,
-    classes: 'bg-green-50 text-green-700 border-green-200',
+    classes:
+      'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/15 dark:text-green-300 dark:border-green-500/40',
   },
   [STATUS.MISSING]: {
     Icon: XCircle,
-    classes: 'bg-red-50 text-red-700 border-red-200',
+    classes:
+      'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/40',
   },
   [STATUS.EXPIRY_NEEDED]: {
     Icon: CalendarClock,
-    classes: 'bg-amber-50 text-amber-800 border-amber-200',
+    classes:
+      'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/40',
   },
   [STATUS.EXPIRED]: {
     Icon: CalendarX,
-    classes: 'bg-red-50 text-red-700 border-red-200',
+    classes:
+      'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/40',
   },
   [STATUS.NOT_PROVIDED]: {
     Icon: MinusCircle,
-    classes: 'bg-slate-100 text-slate-600 border-slate-200',
+    classes:
+      'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:border-slate-400/40',
   },
   duplicate: {
     Icon: Copy,
-    classes: 'bg-orange-50 text-orange-700 border-orange-200',
+    classes:
+      'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/40',
   },
 };
 

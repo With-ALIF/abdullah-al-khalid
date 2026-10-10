@@ -120,6 +120,9 @@ export default function GenerateBar({
           <p className="notice notice--ok">
             {t('step4.downloadReady', { name: result.name, pages: result.pageCount })}
           </p>
+          {result.seal && result.seal.pages > 0 ? (
+            <p className="muted">{t('seal.stamped', { count: result.seal.pages })}</p>
+          ) : null}
           <a className="btn btn--primary" href={result.url} download={downloadName}>
             {t('step4.download')}
           </a>

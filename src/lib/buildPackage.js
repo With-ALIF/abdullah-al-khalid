@@ -1,5 +1,6 @@
 import { PDFDocument, StandardFonts, rgb, degrees } from 'pdf-lib';
 import { todayISO, formatISODateForDisplay } from './dates.js';
+import { classifySealBytes, normalizeSealScope, normalizeSealWidth, sealPlacement } from './sealImage.js';
 
 /**
  * Extra space added at the bottom of every page so the footer sits in its own
@@ -314,16 +315,70 @@ async function placeSourcePage(outDoc, srcDoc, pageIndex) {
 }
 
 /**
+ * Which 0-based pages receive the seal.
+ *
+ *  - cover     : the first cover page only (a cover that spills onto a second
+ *                page is not stamped twice)
+ *  - docFirst  : the first page of every document that made it into the package
+ *  - everyPage : every page of the finished PDF
+ */
+export function sealPageIndexes({ scope, coverCount = 0, pageCount = 0, startPages = [] }) {
+  const mode = normalizeSealScope(scope);
+  if (mode === 'cover') return coverCount > 0 ? [0] : [];
+  if (mode === 'docFirst') {
+    return startPages.map((start) => start - 1).filter((index) => index >= 0 && index < pageCount);
+  }
+  return Array.from({ length: pageCount }, (_unused, index) => index);
+}
+
+/**
+ * Embed the seal image once and stamp it onto the chosen pages.
+ * Returns how many pages received it.
+ */
+async function stampSeal(outDoc, seal, targets) {
+  const data = seal && seal.data instanceof Uint8Array ? seal.data : null;
+  const format = data ? classifySealBytes(data) : null;
+  if (!format) throw new Error('The seal image must be a PNG or JPEG file.');
+
+  let image;
+  try {
+    image = format === 'png' ? await outDoc.embedPng(data) : await outDoc.embedJpg(data);
+  } catch (error) {
+    throw new Error(`The seal image could not be read: ${error.message}`);
+  }
+
+  const widthMm = normalizeSealWidth(seal.widthMm);
+  const pages = outDoc.getPages();
+  const indexes = sealPageIndexes({ ...targets, scope: seal.scope });
+  for (const index of indexes) {
+    const page = pages[index];
+    if (!page) continue;
+    const { width, height } = page.getSize();
+    const box = sealPlacement({
+      pageWidth: width,
+      pageHeight: height,
+      imageWidth: image.width,
+      imageHeight: image.height,
+      widthMm,
+      footerHeight: FOOTER_HEIGHT,
+    });
+    page.drawImage(image, { x: box.x, y: box.y, width: box.width, height: box.height });
+  }
+  return indexes.length;
+}
+
+/**
  * Build the final package.
  *
- * Returns { bytes, pageCount, entries } where `entries` describes what ended up
- * in the PDF and on which page each document starts.
+ * Returns { bytes, pageCount, entries, seal } where `entries` describes what
+ * ended up in the PDF and on which page each document starts.
  */
 export async function buildPackage({
   tender,
   rows,
   files,
   includeIndex = false,
+  seal = null,
   onProgress = () => {},
 }) {
   const fonts = {
@@ -416,6 +471,16 @@ export async function buildPackage({
     }
   }
 
+  let sealedPages = 0;
+  if (seal) {
+    onProgress({ stage: 'seal', percent: 88 });
+    sealedPages = await stampSeal(outDoc, seal, {
+      coverCount: coverPages.length,
+      pageCount: outDoc.getPageCount(),
+      startPages: sources.map((source) => source.startPage),
+    });
+  }
+
   onProgress({ stage: 'footer', percent: 90 });
   const total = outDoc.getPageCount();
   drawFooters(outDoc, tender.tender_id || '', total, fonts);
@@ -426,6 +491,7 @@ export async function buildPackage({
   return {
     bytes,
     pageCount: total,
+    seal: seal ? { scope: normalizeSealScope(seal.scope), pages: sealedPages } : null,
     entries: sources.map((source) => ({
       order: source.row.requirement.order,
       id: source.row.requirement.id,

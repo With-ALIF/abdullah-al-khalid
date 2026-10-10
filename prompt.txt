@@ -173,3 +173,84 @@ Add these bonus features without breaking existing behavior:
    best file for each unmatched requirement using nameMatchScore >= 0.5, shown
    as suggestions the user can accept or ignore (never auto-apply).
 Add Bangla and English translations for all new text.
+
+
+
+-----------------------------------------------------
+Prompt 5: Digital seal stamping
+-----------------------------------------------------
+
+Add an optional "Company seal / signature" feature. Bidders must stamp their
+official seal on the submission, so the generated package has to carry it.
+
+INPUT
+- One image chosen by the user: PNG or JPEG only, up to 5 MB. Validate the
+  bytes by their magic numbers (a renamed file must be rejected), never by the
+  file name or MIME type. Anything else is refused with a clear message that
+  names the file. The image stays in memory for the session only: never
+  localStorage, never the project file, never uploaded.
+
+UI (new panel between the requirement list and the generate bar, shown once a
+tender is loaded; optional, never blocks the build)
+- "Choose seal image" / "Change image" button, "Remove seal" button, thumbnail
+  preview, and the file name as a chip.
+- Placement radio group: Cover page only (default) / First page of every
+  document / Every page, each with a one-line hint under the options.
+- Size select: 30 / 45 / 60 mm wide; the height keeps the image proportion.
+- Bangla and English text for everything, same accessibility rules as the rest
+  of the app (labels, fieldset/legend, 44px targets, visible focus).
+
+PACKAGE RULES
+- Embed the image once, then stamp it on the chosen pages at the bottom-right,
+  16 pt in from the edge and always above the 36 pt footer strip. Shrink the
+  image instead of letting it run off a small page.
+- Stamp after the documents are merged and before the footers are drawn, so the
+  page count and "<tender_id> | Page X of Y" never change. A stamped package
+  has exactly the same page count as an unstamped one.
+- "First page of every document" means the first page of each document that
+  actually made it into the package (skipped optional documents are not
+  stamped).
+- Show the stamping as its own progress stage and, in the success banner, how
+  many pages received the seal.
+- Changing the seal (or any other input) clears the stale "package ready"
+  banner until the next build.
+
+TESTS
+- test/seal.test.mjs, added to `npm test`: byte classification, placement maths
+  (above the footer, inside the page, aspect ratio kept, clamping, no NaN on
+  bad input), which pages each placement option picks, page count and footers
+  unchanged with and without a seal, and an invalid image failing loudly.
+- i18n: en/bn key parity check in the logic tests.
+
+-----------------------------------------------------
+Prompt 6: Dark mode
+-----------------------------------------------------
+
+Add a light / dark / system theme switch to the header, next to the language
+switch.
+
+SWITCH
+- Segmented control with Sun / Moon / Monitor icons (icon only, 44px targets),
+  an accessible label and tooltip per option, aria-pressed on the selected one.
+- Three modes: light, dark, system. Default is system; the choice is kept in
+  localStorage (tdpb.theme.v1) and reused on the next visit.
+- "system" follows prefers-color-scheme live: changing the OS setting updates
+  the page while the mode is system, and never while light or dark is pinned.
+
+PAINTING
+- The resolved theme (light or dark) is written to <html data-theme>, and both
+  the CSS tokens and the Tailwind dark: variant read that attribute - not the
+  OS preference - so pinned light stays light on a dark desktop.
+- An inline script in index.html applies the saved theme before the first
+  frame, so there is never a flash of the wrong colours.
+- Every surface, text and border colour in styles.css comes from a token that
+  is defined once in :root and overridden once in [data-theme="dark"]; no
+  component may hardcode a colour. Image and PDF previews stay paper-white in
+  both themes.
+
+UI / TESTS
+- Dark values for the Tailwind-styled parts (status badges, match select,
+  suggestion box) added as dark: variants.
+- Theme logic (normalize / resolve / storage) plus assertions that the boot
+  script and the dark token block exist, in test/status.test.mjs.
+- New i18n keys follow the existing en/bn parity rule.

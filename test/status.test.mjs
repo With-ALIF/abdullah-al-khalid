@@ -3,7 +3,15 @@ import { isBefore, compareISODate, parseISODate, todayISO } from '../src/lib/dat
 import { parseRequirements, displayTitle } from '../src/lib/requirements.js';
 import { suggestMatches, nameMatchScore } from '../src/lib/matchSuggestions.js';
 import { buildChecklistCsv } from '../src/lib/csv.js';
-import { translate, makeT } from '../src/i18n.js';
+import { translate, makeT, dictionaries } from '../src/i18n.js';
+import {
+  THEMES,
+  normalizeTheme,
+  resolveTheme,
+  readStoredTheme,
+  storeTheme,
+} from '../src/lib/theme.js';
+import { readFileSync } from 'node:fs';
 
 let failed = 0;
 const eq = (label, actual, expected) => {
@@ -115,11 +123,41 @@ eq('csv header', csv.replace(/^\uFEFF/, '').split('\r\n')[0], 'order,requirement
 eq('csv bom', csv.charCodeAt(0), 0xfeff);
 eq('csv has OK', csv.includes('OK'), true);
 
+// theme mode
+eq('theme modes', THEMES, ['light', 'dark', 'system']);
+eq('theme keeps known mode', normalizeTheme('dark'), 'dark');
+eq('theme unknown falls back to system', normalizeTheme('solarized'), 'system');
+eq('theme light wins over OS dark', resolveTheme('light', true), 'light');
+eq('theme dark wins over OS light', resolveTheme('dark', false), 'dark');
+eq('theme system follows OS dark', resolveTheme('system', true), 'dark');
+eq('theme system follows OS light', resolveTheme('system', false), 'light');
+eq('theme unknown mode follows OS', resolveTheme('banana', true), 'dark');
+// The tests run in plain Node: no window, so storage is absent and degrades.
+eq('theme read without browser', readStoredTheme(), 'system');
+eq('theme store without browser', storeTheme('dark'), false);
+eq('theme i18n label en', translate('en', 'theme.label'), 'Theme');
+eq('theme i18n label bn', translate('bn', 'theme.label'), 'থিম');
+// First paint has to be right: the inline script and the dark token block are
+// what stop a dark-mode user from seeing a white flash.
+const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+eq('theme boot script reads storage key', html.includes("localStorage.getItem('tdpb.theme.v1')"), true);
+eq('theme boot script paints data-theme', html.includes("setAttribute('data-theme'"), true);
+eq('css registers dark variant', css.includes('@custom-variant dark'), true);
+eq('css has dark token block', css.includes("[data-theme='dark']"), true);
+eq('css keeps colour-scheme in sync', css.includes('color-scheme: dark'), true);
+
 // i18n
 eq('i18n en', translate('en', 'status.ok'), 'OK');
 eq('i18n bn falls back', translate('bn', 'totally.unknown.key'), 'totally.unknown.key');
 eq('i18n params', translate('en', 'step2.pages', { count: 3 }), '3 page(s)');
 eq('bn differs from en', translate('bn', 'status.ok') !== translate('en', 'status.ok'), true);
+// Every key must exist in both languages, so no screen ever falls back mid-sentence.
+eq(
+  'i18n en/bn key parity',
+  Object.keys(dictionaries.en).sort(),
+  Object.keys(dictionaries.bn).sort(),
+);
 
 console.log(failed === 0 ? '\nALL LOGIC TESTS PASSED' : `\n${failed} FAILURES`);
 process.exit(failed === 0 ? 0 : 1);
